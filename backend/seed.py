@@ -1,5 +1,5 @@
-from database import SessionLocal
-import models
+from backend.database import SessionLocal
+import backend.models as models
 
 def seed_database():
     db=SessionLocal()

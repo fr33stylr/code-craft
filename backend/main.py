@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import engine, get_db
 import models
 import schemas
-from ai_service import call_groq_tutor, generate_project_roadmap
+from ai_service import call_groq_tutor, generate_project_roadmap, run_level_start_tutor, run_level_step_tutor
 import json
 
 models.Base.metadata.create_all(bind=engine)
@@ -39,3 +39,24 @@ async def project_setup(request:schemas.ProjectSetupRequest):
     raw_json_string = await generate_project_roadmap(request.project_idea, request.preferred_stack)
     roadmap_data = json.loads(raw_json_string)
     return roadmap_data
+# NEW: Call 2 - Level Start Endpoint
+@app.post("/api/level/start")
+async def level_start(context: schemas.ContextObject):
+    context_dict = context.dict()
+    explanation = await run_level_start_tutor(context_dict)
+    return {"explanation": explanation}
+
+
+# NEW: Call 3 - Teaching Step Endpoint
+@app.post("/api/level/step")
+async def level_step(context: schemas.ContextObject):
+    context_dict = context.dict()
+    raw_json_string = await run_level_step_tutor(context_dict)
+    
+    try:
+        # Parse the string returned by Groq into an actual dictionary
+        step_data = json.loads(raw_json_string)
+        return step_data
+    except json.JSONDecodeError:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="AI did not return valid JSON. Please try again.")

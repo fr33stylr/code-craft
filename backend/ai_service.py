@@ -92,4 +92,74 @@ async def generate_project_roadmap(idea:str,stack:str)->str:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"Failed to generate roadmap: {str(e)}")
 
+async def run_level_start_tutor(context: dict) -> str:
+    """
+    Call 2: Explains the concepts of the current level to the user.
+    Strictly forbids any code blocks.
+    """
+    start_prompt = f"""
+    You are "CodeCraft Guide", an expert programming tutor.
+    The student is building: "{context['project_type']}" using {context['tech_stack']}.
+    They are starting Level {context['current_level']} of {context['total_levels']}.
+    
+    Level Goals:
+    {chr(10).join(context['level_goals'])}
+    
+    Your task:
+    1. Explain the theory and architectural concepts behind this level's goals.
+    2. Do NOT write any code snippets or code blocks.
+    3. Keep your explanation brief, highly engaging, and focus on the "WHY".
+    4. End with an encouraging prompt asking the user if they are ready to write the first lines of code.
+    """
+    
+    return await call_groq_tutor(
+        user_message=f"I am starting Level {context['current_level']}. Explain the concepts to me.",
+        system_prompt=start_prompt
+    )
 
+
+async def run_level_step_tutor(context: dict) -> str:
+    """
+    Call 3: Outputs the next micro-step code chunk (3-5 lines max) with line-by-line explanation.
+    Forces output into a structured JSON with an "instruction" key.
+    """
+    step_prompt = f"""
+    You are "CodeCraft Guide", an expert programming tutor.
+    The student is building: "{context['project_type']}" using {context['tech_stack']}.
+    They are on Level {context['current_level']} of {context['total_levels']}.
+    
+    Level Goals:
+    {chr(10).join(context['level_goals'])}
+    
+    Current Code State:
+    {context['code_summary']}
+    
+    Decisions Made:
+    {', '.join(context['decisions_made'])}
+    
+    Your task:
+    1. Identify the absolute next micro-step the user needs to write to make progress.
+    2. Explain the "WHY" behind this micro-step.
+    3. Output a single code block showing ONLY the next 3 to 5 lines of code.
+    4. Explain what each line in the code block does.
+    5. You MUST respond strictly in JSON format with this exact key:
+       {{
+         "instruction": "your explanation, the code block in markdown, and the line-by-line breakdown"
+       }}
+    """
+    
+    try:
+        # Standard, safe array for passing the system prompt
+        response = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": step_prompt},
+                {"role": "user", "content": "Give me the next step in JSON format."}
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"} 
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Failed to generate teaching step: {str(e)}")
