@@ -1,0 +1,12 @@
+# Ignore local environment variables (secrets)
+backend/.env
+.env
+
+# Ignore large downloaded dependencies
+backend/venv/
+frontend/node_modules/
+
+# Ignore local database files and system caches
+backend/*.db
+backend/__pycache__/
+.DS_Store
