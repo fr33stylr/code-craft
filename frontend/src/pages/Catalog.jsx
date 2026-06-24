@@ -83,7 +83,7 @@ function Catalog() {
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4f46e5'}
                   
                   // This is the magic router trigger!
-                  onClick={() => navigate('/workspace')}
+                  onClick={() => navigate('/workspace',{state:{project:project}})}
                 >
                   Start Quest
                 </button>
