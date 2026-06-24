@@ -163,3 +163,46 @@ async def run_level_step_tutor(context: dict) -> str:
     except Exception as e:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=f"Failed to generate teaching step: {str(e)}")
+
+async def run_workspace_chat_tutor(context: dict, user_question: str) -> str:
+    """
+    Call 4: Handles custom user questions, doubts, and debugging logs.
+    Takes the recent conversation history, code state, and guides the user.
+    """
+    # 1. Format the conversation history into a readable log for the AI
+    history_log = ""
+    for msg in context.get("conversation_history", []):
+        role = "Student" if msg.get("role") == "user" else "Guide"
+        history_log += f"{role}: {msg.get('content')}\n"
+    
+    chat_prompt = f"""
+    You are "CodeCraft Guide", an expert programming tutor.
+    The student is building: "{context['project_type']}" using {context['tech_stack']}.
+    They are currently on Level {context['current_level']} of {context['total_levels']}.
+    
+    Level Goals:
+    {chr(10).join(context['level_goals'])}
+    
+    Code state so far:
+    {context['code_summary']}
+    
+    Decisions made:
+    {', '.join(context['decisions_made'])}
+    
+    Recent Chat History:
+    {history_log}
+    
+    Student's Current Question/Issue:
+    "{user_question}"
+    
+    Your task:
+    1. Answer the student's question directly, accurately, and conceptually.
+    2. If they are reporting an error, point out the logical bug and provide a hint. DO NOT give them the direct copy-paste code correction immediately.
+    3. Keep your response relevant ONLY to their current level goals and code state.
+    4. Keep any code snippets to a strict 3-5 line maximum.
+    """
+    
+    return await call_groq_tutor(
+        user_message=user_question,
+        system_prompt=chat_prompt
+    )

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import engine, get_db
 import models
 import schemas
-from ai_service import call_groq_tutor, generate_project_roadmap, run_level_start_tutor, run_level_step_tutor
+from ai_service import call_groq_tutor, generate_project_roadmap, run_level_start_tutor, run_level_step_tutor,run_workspace_chat_tutor
 import json
 
 models.Base.metadata.create_all(bind=engine)
@@ -60,3 +60,9 @@ async def level_step(context: schemas.ContextObject):
     except json.JSONDecodeError:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail="AI did not return valid JSON. Please try again.")
+    
+@app.post("/api/level/chat")
+async def level_chat(request:schemas.WorkspaceChatRequest):
+    context_dict=request.context.dict()
+    reply=await run_workspace_chat_tutor(context_dict,request.user_question)
+    return {"reply":reply}

@@ -14,3 +14,7 @@ class ContextObject(BaseModel):
     code_summary: str
     decisions_made: List[str]
     conversation_history: List[Dict[str,str]]
+
+class WorkspaceChatRequest(BaseModel):
+    context: ContextObject
+    user_question: str
